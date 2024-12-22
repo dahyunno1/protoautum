@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.0/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.0/addons/p5.sound.min.js"></script>
+    <meta charset="utf-8" />
+    <style>
+        /* @import 구문을 style 태그의 가장 위에 배치 */
+        @import url('https://fastly.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css');
+
+        body {
+            font-family: 'galmuri11', sans-serif; /* 기본 폰트 설정 */
+        }
+
+        .introtext {
+            position: fixed; /* 화면에 고정 */
+            top: 50%; /* 세로 중앙 */
+            left: 50%; /* 가로 중앙 */
+            transform: translate(-50%, -50%); /* 정확히 중앙 정렬 */
+            background-color: #c9e8ff; /* 노란색 배경 */
+            border: 5px solid #000;
+            color: #000; /* 검은색 텍스트 */
+            font-family: 'galmuri11', sans-serif; /* 텍스트 박스 폰트 */
+            padding: 50px 60px; /* 내부 여백 */
+            border-radius: 20px; /* 둥근 모서리 */
+            font-size: 70px; /* 텍스트 크기 */
+            line-height: 1.8; /* 줄 간격 조정 */
+            text-align: center; /* 텍스트 중앙 정렬 */
+            z-index: 1000; /* 콘텐츠 위로 뜨게 */
+            display: none;
+        }
+
+        .introtext button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #ffdf00;
+            color: #000;
+            border: 3px solid #000;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 40px;
+            font-family: 'galmuri11', sans-serif;
+        }
+
+        .introtext button:hover {
+            background-color: #333;
+        }
+
+        #popuptextBox {
+            width: 80%;     /* 팝업창 너비를 전체 화면의 60%로 설정 */
+            max-width: 1000px; /* 최대 너비 설정 */
+            padding: 20px;  /* 팝업 안쪽 여백 */
+            text-align: center;
+        }
+
+        #popupImg {
+            width: 100%;    /* 이미지 너비를 팝업창에 맞춤 */
+            height: auto;   /* 비율을 유지하면서 높이 자동 조정 */
+            margin-top: 20px;
+        }
+
+        #additionalText {
+            font-size: 18px;
+            color: #000;
+            margin-top: 20px;
+            line-height: 1.5;
+        }
+
+        .go-to-link-btn {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: #ffdf00;
+        color: #000;
+        border: 3px solid #000;
+        padding: 20px 30px;
+        font-size: 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-family: 'galmuri11', sans-serif;
+        z-index: 1000; /* 다른 콘텐츠 위에 표시 */
+    }
+
+    .go-to-link-btn:hover {
+        background-color: #333;
+    }
+
+    </style>
+</head>
+<body>
+    <main>
+    </main>
+    <a href="2_board.html" class="go-to-link-btn">Go to HTML</a>
+    <div class="introtext" id="textBox">
+        설명.
+        <br>통학을 하고 있는 홍익대학교 시각디자인과 학생입니다.
+        <br>홍익이는 왕복 4시간의 통학으로 인해, 안타깝게도
+        <br>남들보다는 조금 더 피곤하게 하루를 시작하곤 합니다.
+        <br> 오늘도 어김없이 등교를 하는 통학러 홍익이의 하루를 함께 보내볼까요?
+        <br>* 홍익이는 방향키(⇦⇧⇨⇩)로 움직일 수 있습니다 *
+        <button onclick="closeBox('textBox')">Let's Go!</button>
+    </div>
+
+    <div class="introtext" id="popuptextBox">
+        <p id="popupText">여기에 텍스트가 나타납니다.</p>
+        <img id="popupImg" src="" alt="" />
+        <div id="additionalText">추가적인 텍스트가 여기에 들어갑니다.</div>
+        <button onclick="closeBox('popuptextBox')">Close</button>
+    </div>
+
+    <script>
+        let backgroundImg;
+        let blockImg1, blockImg2, blockImg3;
+        let fadeInAmount = 255; // 초기 페이드인 효과를 위한 변수
+        let hoverEffectAlpha = 0; // 호버 효과를 위한 알파 값
+        let hoverIncreasing = true; // 알파 값 증감 여부
+        let isPopupOpen = false; // 팝업창이 열렸는지 여부
+        let isIntroTextOpen = true; // introtext 창이 처음에는 열려 있는 상태
+        let isInteractionEnabled = false; // 초기 상태에서 클릭 및 호버 비활성화
+    
+        let blocks = []; // 블록 객체 배열
+    
+        function preload() {
+            backgroundImg = loadImage('class_ET.png'); // 배경 이미지 파일
+            blockImg1 = loadImage('class_block1.png');
+            blockImg2 = loadImage('class_block2.png');
+            blockImg3 = loadImage('class_engblock.png');
+        }
+    
+        function setup() {
+            createCanvas(5120, 2880);
+    
+            // 블록 정보 추가
+            blocks.push({ img: blockImg2, x: 965, y: 1450, w: 526, h: 1000, text: "사진", imgSrc: "class_photo.png" });
+            blocks.push({ img: blockImg2, x: 2240, y: 600, w: 526, h: 1000, text: "타이포그라피", imgSrc: "class_typo.png" });
+            blocks.push({ img: blockImg1, x: 3175, y: 1805, w: 526, h: 1000, text: "영상", imgSrc: "class_video.png" });
+            blocks.push({ img: blockImg3, x: 3653, y: 600, w: 526, h: 300, text: "영어", imgSrc: "class_eng.png" });
+            blocks.push({ img: blockImg2, x: 4316, y: 602, w: 526, h: 1000, text: "졸업프로젝트", imgSrc: "class_gradu.png" });
+    
+            setTimeout(() => {
+                const textBox = document.getElementById('textBox');
+                textBox.style.display = 'block'; // 텍스트 박스 보이기
+            }, 3000); // 페이드인 완료 시간 (3000ms)
+        }
+    
+        function closeBox(boxId) {
+            const box = document.getElementById(boxId);
+            box.style.display = 'none'; // 선택된 텍스트 박스를 숨기기
+            if (boxId === 'popuptextBox') {
+                isPopupOpen = false; // 팝업창이 닫히면 상태 변경
+            }
+            if (boxId === 'textBox') {
+                isIntroTextOpen = false; // introtext 창이 닫히면 상태 변경
+                isInteractionEnabled = true; // introtext 버튼 클릭 후 상호작용 활성화
+            }
+        }
+    
+        function mousePressed() {
+            if (!isInteractionEnabled || isPopupOpen || isIntroTextOpen) return; // 상호작용이 활성화되지 않았거나 팝업이 열려있으면 클릭 막음
+    
+            blocks.forEach(block => {
+                if (mouseX > block.x && mouseX < block.x + block.w &&
+                    mouseY > block.y && mouseY < block.y + block.h) {
+                    // 블록 클릭 시 텍스트박스에 텍스트와 이미지를 설정
+                    const textBox = document.getElementById('popuptextBox');
+                    document.getElementById('popupText').innerText = block.text || "기본 텍스트입니다.";
+                    document.getElementById('popupImg').src = block.imgSrc || "";
+                    document.getElementById('additionalText').innerText = "이곳에 추가적인 설명을 넣을 수 있습니다.";
+    
+                    // 텍스트 박스 보이기
+                    textBox.style.display = 'block';
+                    isPopupOpen = true; // 팝업창이 열렸다고 상태 변경
+                }
+            });
+        }
+    
+        function draw() {
+            clear();
+    
+            // 배경 이미지 렌더링
+            background(backgroundImg);
+    
+            blocks.forEach(block => {
+                image(block.img, block.x, block.y, block.w, block.h); // 블록 이미지 렌더링
+    
+                // 팝업이 열려 있거나 상호작용이 비활성화 상태에서는 클릭과 호버를 막음
+                if (isInteractionEnabled && !isPopupOpen && !isIntroTextOpen) {
+                    // 호버 상태인지 확인
+                    if (mouseX > block.x && mouseX < block.x + block.w &&
+                        mouseY > block.y && mouseY < block.y + block.h) {
+    
+                        // 깜빡임 효과
+                        if (hoverIncreasing) {
+                            hoverEffectAlpha += 5;
+                            if (hoverEffectAlpha > 150) hoverIncreasing = false;
+                        } else {
+                            hoverEffectAlpha -= 5;
+                            if (hoverEffectAlpha < 50) hoverIncreasing = true;
+                        }
+                        noStroke();
+                        fill(255, hoverEffectAlpha);
+                        rect(block.x, block.y, block.w, block.h);
+                    }
+                }
+            });
+    
+            // 페이드인 효과
+            if (fadeInAmount > 0) {
+                fadeInAmount -= 5;
+                fill(0, fadeInAmount);
+                rect(0, 0, width, height);
+            }
+        }
+    </script>
+    
+    
+</body>
+</html>

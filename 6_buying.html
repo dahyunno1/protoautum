@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.0/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.0/addons/p5.sound.min.js"></script>
+
+    <meta charset="utf-8" />
+    <style>
+        @import url('https://fastly.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css');
+
+        body {
+            font-family: 'galmuri11', sans-serif;
+        }
+
+        .introtext {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #c9e8ff;
+            border: 5px solid #000;
+            color: #000;
+            padding: 50px 60px;
+            border-radius: 20px;
+            font-size: 70px;
+            line-height: 1.8;
+            text-align: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .introtext button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #ffdf00;
+            color: #000;
+            border: 3px solid #000;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 40px;
+            font-family: 'galmuri11';
+        }
+
+        .introtext button:hover {
+            background-color: #333;
+        }
+    </style>
+</head>
+<body>
+    <main></main>
+    <div class="introtext" id="textBox">
+        경기도 한 지역에서 살고 있는 홍익이는 통학을 하고 있는 홍익대학교 시각디자인과 학생입니다.
+        <br>오늘도 어김없이 등교를 하는 통학러 홍익이의 하루를 함께 보내볼까요?
+        <br>* 홍익이는 방향키(⇦⇧⇨⇩)로 움직일 수 있습니다 *
+        <button onclick="closeBox()">Let's Go!</button>
+    </div>
+
+    <script>
+        let playerImgs = [];
+        let currentFrame = 0;
+        let backgroundImg;
+        let appleImg, hangaramImg, adobeImg;
+        let popupImage = null;
+        let popupImageTimeout = 0;
+        let playerWidth;
+        let playerHeight;
+        let x = 100; // 초기 x 위치
+        let y = 1800; // 초기 y 위치
+        let fadeInAmount = 255; //
+        let currentCollision = null;
+
+        let objects = [];
+
+        function preload() {
+            // 플레이어 이미지 로드
+            const imageFiles = ['running1.png', 'running2.png', 'running3.png'];
+            for (let file of imageFiles) {
+                playerImgs.push(loadImage(file, img => {
+                    playerWidth = 500; // 플레이어 이미지의 가로 크기
+                    playerHeight = playerWidth * (img.height / img.width); // 원본 비율 유지
+                }));
+            }
+
+            backgroundImg = loadImage('jumpbg.png');
+            appleImg = loadImage("buy_apple.png");
+            hangaramImg = loadImage("buy_hangaram.png");
+            adobeImg = loadImage("buy_adobe.png");
+            popupImg = loadImage("buy_popup.png");
+        }
+
+        function setup() {
+            createCanvas(5120, 2880);
+
+            // Object 배열 초기화
+            objects = [
+                { x: 800, y: 1220, w: 1000, h: 1000, img: appleImg, message: "Press ⇧ Key!" },
+                { x: 2060, y: 1220, w: 1000, h: 1000, img: hangaramImg, message: "Press ⇧ Key!" },
+                { x: 3320, y: 1220, w: 1000, h: 1000, img: adobeImg, message: "Press ⇧ Key!" }
+            ];
+
+            setTimeout(() => {
+                const textBox = document.getElementById('textBox');
+                textBox.style.display = 'block'; // 텍스트 박스 보이기
+            }, 3000);
+        }
+
+        function closeBox() {
+            const textBox = document.getElementById('textBox');
+            textBox.style.display = 'none'; // 텍스트 박스 숨기기
+        }
+
+        function draw() {
+            // 배경 이미지 렌더링
+            background(backgroundImg);
+
+            // 오브젝트 이미지 렌더링
+            for (let obj of objects) {
+                image(obj.img, obj.x, obj.y, obj.w, obj.h);
+            }
+
+           // 플레이어 이미지 렌더링
+           if (currentFrame === 1) {
+                // running2 이미지 크기 수동 조정
+                const running2Width = 320; // 원하는 가로 크기
+                const running2Height = 780; // 원하는 세로 크기
+                const running2Y = y - (running2Height - playerHeight); // running2 이미지의 밑부분을 맞추기 위한 y 조정
+                image(playerImgs[currentFrame], x, running2Y, running2Width, running2Height);
+            } else {
+                // running1, running3은 원본 비율로 렌더링
+                const img = playerImgs[currentFrame];
+                const width = 500; // 고정된 너비
+                const height = img.height * (width / img.width); // 비율에 맞춰 높이 계산
+                image(img, x, y, width, height);
+            }
+
+            currentCollision = null; // 충돌 상태 초기화
+            for (let obj of objects) {
+                if (
+                    x < obj.x + obj.w &&
+                    x + playerWidth > obj.x &&
+                    y < obj.y + obj.h &&
+                    y + playerHeight > obj.y
+                ) {
+                    currentCollision = obj; // 충돌한 오브젝트 정보 저장
+
+                    fill(0); // 텍스트 색상
+                    textAlign(CENTER, CENTER);
+                    textFont('galmuri11')
+                    textSize(80);
+                    text(obj.message, obj.x + obj.w / 2, obj.y - 60); // 텍스트 위치
+                }
+            }
+
+            if (popupImage) {
+                imageMode(CENTER);
+
+                const aspectRatio = popupImg.width / popupImg.height;
+                const popupWidth = 1900; // 표시할 너비
+                const popupHeight = popupWidth / aspectRatio;
+
+                image(popupImg, width / 2, height / 2, popupWidth, popupHeight);
+
+                fill(255);  // 흰색 텍스트
+        textSize(100);
+        textAlign(CENTER, CENTER);
+        text("Press ⇧ Key!", width / 2, height / 2);  // 텍스트 위치
+
+                imageMode(CORNER);
+
+                if (millis() > popupImageTimeout) {
+                    popupImage = null;
+                }
+            }
+
+            // 페이드인 효과
+            if (fadeInAmount > 0) {
+                fadeInAmount -= 5;
+                fill(0, fadeInAmount);
+                rect(0, 0, width, height);
+            }
+        }
+
+        function keyPressed() {
+            if (keyCode === LEFT_ARROW) {
+                x -= 90;
+                updateAnimationFrame(); // 애니메이션 업데이트
+            } else if (keyCode === RIGHT_ARROW) {
+                x += 90;
+                updateAnimationFrame(); // 애니메이션 업데이트
+            } else if (keyCode === UP_ARROW && currentCollision) {
+                popupImage = popupImg;
+                popupImageTimeout = millis() + 2000;
+            }
+        }
+
+        function updateAnimationFrame() {
+            currentFrame = (currentFrame + 1) % playerImgs.length;
+        }
+    </script>
+</body>
+</html>
